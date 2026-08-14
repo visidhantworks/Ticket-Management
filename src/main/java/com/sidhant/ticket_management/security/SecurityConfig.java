@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .userDetailsService(customUserDetailsService)
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/frontend/**").permitAll()
+                .requestMatchers("/","/frontend/**","/api/auth/**").permitAll()
                 .requestMatchers("/api/requestor/**").hasRole("REQUESTOR")
                 .requestMatchers("/api/support/**").hasRole("SUPPORT_ENGINEER")
                 .requestMatchers("/api/tickets/**").hasRole("REQUESTOR")
