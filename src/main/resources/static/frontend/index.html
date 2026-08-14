@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loginPage" class="page">
+    <div class="login-card">
+        <div class="brand">
+            <div class="brand-icon">TM</div>
+            <div>
+                <h1>Ticket Management</h1>
+                <p>Support made simple.</p>
+            </div>
+        </div>
+
+        <h2>Welcome back</h2>
+        <p class="muted">Login to continue to your dashboard.</p>
+
+        <form id="loginForm">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@example.com" required>
+
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="Password" required>
+
+            <button type="submit" class="primary-btn">Login</button>
+            <p id="loginError" class="error"></p>
+        </form>
+    </div>
+</div>
+
+<div id="appPage" class="app hidden">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">TM</div>
+            <span>Ticket Management</span>
+        </div>
+
+        <nav id="requestorNav" class="nav hidden">
+            <button data-view="myTickets" class="nav-btn active">My Tickets</button>
+            <button data-view="createTicket" class="nav-btn">Create Ticket</button>
+        </nav>
+
+        <nav id="supportNav" class="nav hidden">
+            <button data-view="assignedTickets" class="nav-btn active">Assigned Tickets</button>
+            <button data-view="openTickets" class="nav-btn">Open Tickets</button>
+        </nav>
+
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Dashboard</p>
+                <h2 id="pageTitle">My Tickets</h2>
+            </div>
+            <div class="user-info">
+                <span id="userRole"></span>
+                <strong id="userEmail"></strong>
+            </div>
+        </header>
+
+        <section id="content" class="content"></section>
+    </main>
+</div>
+
+<div id="modal" class="modal hidden">
+    <div class="modal-card">
+        <button id="closeModal" class="close-btn">&times;</button>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
