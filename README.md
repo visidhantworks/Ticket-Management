@@ -16,7 +16,7 @@ Render.
 
 ## Live Application
 
-https://ticket-management-lyou.onrender.com
+https://ticket-management-lyou.onrender.com/frontend/index.html
 
 ## Features
 
