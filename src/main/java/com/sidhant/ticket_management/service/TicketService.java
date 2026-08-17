@@ -19,7 +19,7 @@ import com.sidhant.ticket_management.dto.response.TicketHistoryResponse;
 import com.sidhant.ticket_management.dto.response.TicketResponse;
 import com.sidhant.ticket_management.exception.ResourceNotFoundException;
 @Service
-public class TicketService {
+public class TicketService{
     private final TicketHistoryRepository ticketHistoryRepository;
     private final TicketCommentRepository ticketCommentRepository;
     private final TicketRepository ticketRepository;
