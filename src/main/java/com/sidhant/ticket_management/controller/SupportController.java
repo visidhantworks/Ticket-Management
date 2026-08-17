@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/support")
-public class SupportController {
+public class SupportController{
 
     private final TicketService ticketService;
 
