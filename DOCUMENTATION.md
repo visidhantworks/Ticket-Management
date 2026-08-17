@@ -367,17 +367,17 @@ TicketHistory
 Relationship summary:
 
 ``` text
-User 1 -------- * Ticket
+User 1 --------  Ticket
        requestor
 
-User 1 -------- * Ticket
+User 1 -------- Ticket
        supportEngineer
 
-BankingClient 1 -------- * Ticket
+BankingClient 1 --------  Ticket
 
-Ticket 1 -------- * TicketComment
+Ticket 1 --------  TicketComment
 
-Ticket 1 -------- * TicketHistory
+Ticket 1 --------  TicketHistory
 ```
 
 The Support Engineer relationship is optional because a newly created
