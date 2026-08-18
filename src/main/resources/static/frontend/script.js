@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+const API_BASE = "https://ticket-management-lyou.onrender.com/frontend/index.html";
 
 let token = localStorage.getItem("token");
 let role = localStorage.getItem("role");
