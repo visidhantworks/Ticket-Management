@@ -1,5 +1,7 @@
 package com.sidhant.ticket_management.security;
 
+import com.sidhant.ticket_management.entity.UserSession;
+import com.sidhant.ticket_management.repository.UserSessionRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
@@ -17,13 +19,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Value("${jwt.secret}")
     private String secret;
+
+    private final UserSessionRepository userSessionRepository;
+
+    public JwtAuthenticationFilter(
+            UserSessionRepository userSessionRepository) {
+
+        this.userSessionRepository = userSessionRepository;
+    }
 
     private SecretKey getSigningKey() {
         return io.jsonwebtoken.security.Keys.hmacShaKeyFor(
@@ -38,7 +50,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authorizationHeader = request.getHeader("Authorization");
+        String authorizationHeader =
+                request.getHeader("Authorization");
 
         if (authorizationHeader == null ||
                 !authorizationHeader.startsWith("Bearer ")) {
@@ -59,22 +72,57 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String email = claims.getSubject();
             String role = claims.get("role", String.class);
+            String sessionId = claims.get("sessionId", String.class);
 
-            if (email != null && role != null) {
+            if (email == null ||
+                    role == null ||
+                    sessionId == null) {
 
-                SimpleGrantedAuthority authority =
-                        new SimpleGrantedAuthority("ROLE_" + role);
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                email,
-                                null,
-                                List.of(authority)
-                        );
-
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
             }
+
+            Optional<UserSession> session =
+                    userSessionRepository.findBySessionId(sessionId);
+
+            if (session.isEmpty()) {
+
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            UserSession userSession = session.get();
+
+            if (!userSession.isActive() ||
+                    userSession.getExpiresAt()
+                            .isBefore(LocalDateTime.now())) {
+
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (!userSession.getUser().getEmail().equals(email)) {
+
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            SimpleGrantedAuthority authority =
+                    new SimpleGrantedAuthority("ROLE_" + role);
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            email,
+                            null,
+                            List.of(authority)
+                    );
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
 
         } catch (JwtException | IllegalArgumentException e) {
 

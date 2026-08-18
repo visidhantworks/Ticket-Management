@@ -268,10 +268,7 @@ public TicketResponse reassignTicket(
             savedTicket.getAttachment()
     );
 }
-public CommentResponse addComment(
-        Long ticketId,
-        String supportEngineerEmail,
-        String commentText) {
+public CommentResponse addComment(Long ticketId,String supportEngineerEmail,String commentText) {
 
     Ticket ticket = ticketRepository
             .findById(ticketId)

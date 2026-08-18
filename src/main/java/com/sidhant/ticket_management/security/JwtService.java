@@ -22,14 +22,24 @@ public class JwtService {
         );
     }
 
-    public String generateToken(User user) {
+    public String generateToken(User user, String sessionId) {
 
-        return Jwts.builder()
-                .subject(user.getEmail())
-                .claim("role", user.getRole().name())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
-                .signWith(getSigningKey())
-                .compact();
-    }
+    return Jwts.builder()
+            .subject(user.getEmail())
+            .claim("role", user.getRole().name())
+            .claim("sessionId", sessionId)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+            .signWith(getSigningKey())
+            .compact();
+}
+public String extractSessionId(String token) {
+
+    return Jwts.parser()
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload()
+            .get("sessionId", String.class);
+}
 }

@@ -16,4 +16,12 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND)
                 .body(exception.getMessage());
     }
+    @ExceptionHandler(ActiveSessionException.class)
+    public ResponseEntity<String> handleActiveSession(
+            ActiveSessionException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(exception.getMessage());
+    }
 }

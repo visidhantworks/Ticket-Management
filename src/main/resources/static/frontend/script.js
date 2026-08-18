@@ -1,4 +1,4 @@
-const API_BASE = "";
+const API_BASE = "http://localhost:8080";
 
 let token = localStorage.getItem("token");
 let role = localStorage.getItem("role");
@@ -173,10 +173,22 @@ function showApp() {
     alert("Unsupported user role.");
 }
 
-function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    localStorage.removeItem("email");
+async function logout() {
+
+    try {
+        if (token) {
+            await fetch(`${API_BASE}/api/auth/logout`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Logout request failed:", error);
+    }
+
+    localStorage.clear();
 
     token = null;
     role = null;
@@ -184,9 +196,7 @@ function logout() {
 
     appPage.classList.add("hidden");
     loginPage.classList.remove("hidden");
-
     loginForm.reset();
-    loginError.textContent = "";
 }
 
  
