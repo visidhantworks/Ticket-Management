@@ -9,7 +9,7 @@ async function api(path,options={}){const res=await fetch(API_BASE+path,{...opti
  if(!res.ok){throw new Error(typeof data==='string'?data:(data?.message||data?.error||`Request failed (${res.status})`))}return data}
 function setSession(data,email){state.token=data.token;state.role=String(data.role);state.email=email;localStorage.setItem('tm_token',state.token);localStorage.setItem('tm_role',state.role);localStorage.setItem('tm_email',email)}
 function logout(callApi=true){const token=state.token;if(callApi&&token)fetch(API_BASE+'/api/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}}).catch(()=>{});localStorage.removeItem('tm_token');localStorage.removeItem('tm_role');localStorage.removeItem('tm_email');state.token=null;state.role=null;state.email=null;$('appScreen').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('loginForm').reset();}
-function navItems(){if(state.role==='REQUESTOR')return [['home','Overview'],['tickets','My Tickets'],['create','Create Ticket']];if(state.role==='SUPPORT_ENGINEER')return [['home','Overview'],['assigned','Assigned Tickets'],['open','Open Tickets']];return [['home','Overview'],['all','All Tickets'],['users','Support Engineers'],['performance','Performance'],['create-user','Create User']];}
+function navItems(){if(state.role==='REQUESTOR')return [['home','Overview'],['tickets','My Tickets'],['create','Create Ticket']];if(state.role==='SUPPORT_ENGINEER')return [['home','Overview'],['assigned','Assigned Tickets']];return [['home','Overview'],['all','All Tickets'],['users','Support Engineers'],['performance','Performance'],['create-user','Create User']];}
 function renderNav(active='home'){const n=$('sidebarNav');n.innerHTML=navItems().map(([id,label])=>`<button class="nav-btn ${active===id?'active':''}" data-page="${id}">▸ <span>${label}</span></button>`).join('');n.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>navigate(b.dataset.page));$('logoutBtn').onclick=()=>logout(true)}
 function startApp(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden');$('userEmail').textContent=state.email||'User';$('userRole').textContent=state.role||'ROLE'; $('userInitial').textContent=(state.email||'U')[0].toUpperCase(); navigate('home') }
 function navigate(page){renderNav(page);$('pageTitle').textContent=navItems().find(x=>x[0]===page)?.[1]||'Dashboard';const fn=pages[page]||pages.home;fn()}
@@ -26,7 +26,53 @@ const pages={
  all:async()=>{const t=(await loadTickets('/api/admin/tickets'))||[];if($('pageContent').querySelector('.error')) return;$('pageContent').innerHTML=`<div class="panel"><div class="panel-head"><h3>All Tickets</h3></div>${ticketTable(t)}</div>`},
  create:()=>{$('pageContent').innerHTML=`<div class="panel"><div class="panel-head"><h3>Create Ticket</h3></div><form id="ticketForm" class="form-grid"><div><label class="form-label">Banking Client ID</label><input class="form-control" name="bankingClientId" type="number" required></div><div><label class="form-label">Title</label><input class="form-control" name="title" required></div><div class="full-span"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="5" required></textarea></div><div><label class="form-label">Category</label><select class="form-control" name="category"><option value="LOGIN">Login</option><option value="PAYMENT">Payment</option><option value="ACCOUNT">Account</option><option value="TECHNICAL">Technical</option><option value="OTHER">Other</option></select></div><div><label class="form-label">Priority</label><select class="form-control" name="priority"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option></select></div><div><label class="form-label">Attachment</label><input class="form-control" name="attachment" placeholder="Optional URL/path"></div><div class="full-span"><button class="primary-btn" type="submit">Create Ticket</button></div></form></div>`;$('ticketForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const body=Object.fromEntries(f.entries());body.bankingClientId=Number(body.bankingClientId);try{await api('/api/tickets',{method:'POST',body:JSON.stringify(body)});showToast('Ticket created');navigate('tickets')}catch(err){showToast(err.message)}}},
  users:async()=>{const users=await loadTickets('/api/admin/users/support');$('pageContent').innerHTML=`<div class="panel"><div class="panel-head"><h3>Support Engineers</h3></div><div class="list">${users.map(u=>`<div class="list-item"><strong>${esc(u.name)}</strong><p>${esc(u.email)}</p></div>`).join('')||'<div class="empty">No support engineers found.</div>'}</div></div>`},
- performance:async()=>{const p=await loadTickets('/api/admin/support/performance');$('pageContent').innerHTML=`<div class="panel"><div class="panel-head"><h3>Support Performance</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Engineer</th><th>Pending</th><th>Attended</th></tr></thead><tbody>${p.map(x=>`<tr><td><strong>${esc(x.name)}</strong></td><td>${x.pendingTickets}</td><td>${x.attendedTickets}</td></tr>`).join('')||'<tr><td colspan="3">No data</td></tr>'}</tbody></table></div></div>`},
+performance:async()=>{
+  const p=await loadTickets('/api/admin/support/performance');
+
+  if($('pageContent').querySelector('.error')) return;
+
+  $('pageContent').innerHTML=`
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Support Performance</h3>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Engineer</th>
+              <th>Pending</th>
+              <th>Attended</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${
+              p.map(x=>`
+                <tr>
+                  <td><strong>${esc(x.name)}</strong></td>
+                  <td>${x.pendingTickets}</td>
+                  <td>${x.attendedTickets}</td>
+                  <td>
+                    <button
+                      class="small-btn"
+                      onclick="viewSolvedTickets(${x.id}, '${esc(x.name)}')">
+                      View Solved Tickets
+                    </button>
+                  </td>
+                </tr>
+              `).join('')
+              ||
+              '<tr><td colspan="4">No data</td></tr>'
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+},
  'create-user':()=>{$('pageContent').innerHTML=`<div class="grid-2"><div class="panel"><h3>Create Requestor</h3><form id="requestorForm"><label class="form-label">Name</label><input class="form-control" name="name" required><label class="form-label">Email</label><input class="form-control" name="email" type="email" required><label class="form-label">Password</label><input class="form-control" name="password" minlength="6" required><button class="primary-btn" style="margin-top:18px">Create Requestor</button></form></div><div class="panel"><h3>Create Support Engineer</h3><form id="supportForm"><label class="form-label">Name</label><input class="form-control" name="name" required><label class="form-label">Email</label><input class="form-control" name="email" type="email" required><label class="form-label">Password</label><input class="form-control" name="password" minlength="6" required><button class="primary-btn" style="margin-top:18px">Create Support Engineer</button></form></div></div>`;bindCreateUser('requestorForm','/api/admin/users/requestor');bindCreateUser('supportForm','/api/admin/users/support')}
 };
 function bindCreateUser(id,path){$(id).onsubmit=async e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.target).entries());try{await api(path,{method:'POST',body:JSON.stringify(body)});showToast('User created successfully');e.target.reset()}catch(err){showToast(err.message)}}}
@@ -83,3 +129,103 @@ window.updateStatus=async(id,status)=>{try{await api(`/api/support/tickets/${id}
 $('togglePassword').onclick=()=>{const p=$('password');p.type=p.type==='password'?'text':'password';$('togglePassword').textContent=p.type==='password'?'Show':'Hide'};
 $('loginForm').onsubmit=async e=>{e.preventDefault();$('loginError').textContent='';$('loginBtn').disabled=true;$('loginBtn').textContent='Signing in...';try{const email=$('email').value.trim();const data=await api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password:$('password').value})});setSession(data,email);startApp()}catch(err){$('loginError').textContent=err.message||'Login failed'}finally{$('loginBtn').disabled=false;$('loginBtn').textContent='Sign in'}};
 if(state.token&&state.role&&state.email)startApp();
+window.viewSolvedTickets=async(engineerId, engineerName)=>{
+  try{
+
+    const tickets = await api(
+      `/api/admin/support/${engineerId}/solved-tickets`
+    );
+
+    const existing = document.getElementById('solvedTicketsModal');
+    if(existing) existing.remove();
+
+    document.body.insertAdjacentHTML('beforeend',`
+      <div class="modal" id="solvedTicketsModal">
+
+        <div class="modal-card">
+
+          <div class="modal-head">
+            <h3>Solved Tickets · ${esc(engineerName)}</h3>
+
+            <button
+              class="close"
+              onclick="document.getElementById('solvedTicketsModal').remove()">
+              ✕
+            </button>
+          </div>
+
+          <div style="margin-top:18px">
+
+            ${
+              tickets.length
+              ?
+              `<div class="table-wrap">
+                <table class="table">
+
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Title</th>
+                      <th>Client</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    ${
+                      tickets.map(t=>`
+                        <tr>
+
+                          <td>#${esc(t.id)}</td>
+
+                          <td>
+                            <strong>${esc(t.title)}</strong>
+                          </td>
+
+                          <td>${esc(t.bankingClient)}</td>
+
+                          <td>
+                            <span class="badge ${esc(t.priority)}">
+                              ${esc(t.priority)}
+                            </span>
+                          </td>
+
+                          <td>
+                            <span class="badge ${esc(t.status)}">
+                              ${esc(t.status)}
+                            </span>
+                          </td>
+
+                          <td>
+                            <button
+                              class="small-btn"
+                              onclick="viewTicket(${t.id})">
+                              View History
+                            </button>
+                          </td>
+
+                        </tr>
+                      `).join('')
+                    }
+                  </tbody>
+
+                </table>
+              </div>`
+              :
+              `<div class="empty">
+                No solved tickets found for this engineer.
+              </div>`
+            }
+
+          </div>
+
+        </div>
+      </div>
+    `);
+
+  }catch(e){
+    showToast(e.message);
+  }
+};

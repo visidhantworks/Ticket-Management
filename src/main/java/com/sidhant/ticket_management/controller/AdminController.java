@@ -102,4 +102,10 @@ public class AdminController {
 
         return ticketService.getSupportTicket(ticketId);
     }
+    @GetMapping("/support/{supportEngineerId}/solved-tickets")
+    public List<TicketResponse> getSolvedTickets(
+            @PathVariable Long supportEngineerId) {
+
+        return adminService.getSolvedTickets(supportEngineerId);
+    }
 }

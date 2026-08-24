@@ -6,6 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.sidhant.ticket_management.dto.response.SupportPerformanceResponse;
+import com.sidhant.ticket_management.dto.response.TicketResponse;
 import com.sidhant.ticket_management.entity.Role;
 import com.sidhant.ticket_management.entity.TicketStatus;
 import com.sidhant.ticket_management.entity.User;
@@ -86,6 +87,26 @@ public class AdminService {
             })
             .toList();
 }
+public List<TicketResponse> getSolvedTickets(Long supportEngineerId) {
+
+    return ticketRepository
+            .findBySupportEngineerIdAndStatus(
+                    supportEngineerId,
+                    TicketStatus.RESOLVED
+            )
+            .stream()
+            .map(ticket -> new TicketResponse(
+                    ticket.getId(),
+                    ticket.getBankingClient().getName(),
+                    ticket.getTitle(),
+                    ticket.getDescription(),
+                    ticket.getCategory(),
+                    ticket.getPriority(),
+                    ticket.getStatus(),
+                    ticket.getAttachment()
+            ))
+            .toList();
+}
 public List<User> getSupportEngineers() {
 
     return userRepository.findAll()
@@ -93,4 +114,5 @@ public List<User> getSupportEngineers() {
             .filter(user -> user.getRole() == Role.SUPPORT_ENGINEER)
             .toList();
 }
+
 }
