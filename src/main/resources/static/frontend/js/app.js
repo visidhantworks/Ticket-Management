@@ -1,4 +1,4 @@
-const API_BASE = (window.location.protocol === 'file:') ? 'http://localhost:8080' : 'http://localhost:8080';
+const API_BASE =  '';
 const state = { token: localStorage.getItem('tm_token'), role: localStorage.getItem('tm_role'), email: localStorage.getItem('tm_email') };
 const $ = (id) => document.getElementById(id);
 
