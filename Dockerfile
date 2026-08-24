@@ -1,6 +1,11 @@
-FROM eclipse-temurin:21-jdk
+FROM maven:3.9.16-eclipse-temurin-21
+
 WORKDIR /app
+
 COPY . .
-RUN ./mvnw clean package -DskipTests
+
+RUN mvn clean package -DskipTests
+
 EXPOSE 8080
-CMD ["sh", "-c", "java -jar target/ticket-management-0.0.1-SNAPSHOT.jar"]
+
+CMD ["java", "-jar", "target/ticket-management-0.0.1-SNAPSHOT.jar"]
