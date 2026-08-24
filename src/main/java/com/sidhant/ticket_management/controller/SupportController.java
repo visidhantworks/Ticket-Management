@@ -9,11 +9,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.sidhant.ticket_management.dto.request.AddCommentRequest;
-import com.sidhant.ticket_management.dto.request.AssignTicketRequest;
 import com.sidhant.ticket_management.dto.request.UpdateTicketStatusRequest;
 
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+ 
 import java.util.List;
 
 @RestController
@@ -47,27 +46,7 @@ public class SupportController{
 
         return ticketService.getOpenTickets();
     }
-    @PostMapping("/tickets/{ticketId}/assign")
-    @ResponseStatus(HttpStatus.OK)
-    public TicketResponse assignTicket(
-            @PathVariable Long ticketId,
-            @Valid @RequestBody AssignTicketRequest request) {
-
-        return ticketService.assignTicket(
-                ticketId,
-                request.getSupportEngineerId()
-        );
-    }
-    @PostMapping("/tickets/{ticketId}/reassign")
-    public TicketResponse reassignTicket(
-            @PathVariable Long ticketId,
-            @Valid @RequestBody AssignTicketRequest request) {
-
-        return ticketService.reassignTicket(
-                ticketId,
-                request.getSupportEngineerId()
-        );
-    }
+  
     @PostMapping("/tickets/{ticketId}/comments")
     public CommentResponse addComment(
             @PathVariable Long ticketId,

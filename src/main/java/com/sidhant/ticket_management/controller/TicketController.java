@@ -2,6 +2,7 @@ package com.sidhant.ticket_management.controller;
 import java.util.List;
 import com.sidhant.ticket_management.dto.request.CreateTicketRequest;
 import com.sidhant.ticket_management.dto.response.CommentResponse;
+import com.sidhant.ticket_management.dto.response.TicketHistoryResponse;
 import com.sidhant.ticket_management.dto.response.TicketResponse;
 import com.sidhant.ticket_management.entity.Ticket;
 import com.sidhant.ticket_management.service.TicketService;
@@ -49,6 +50,18 @@ public class TicketController {
                 ticketId,
                 requestorEmail
         );
+    }
+    @GetMapping("/{ticketId}/history")
+    public List<TicketHistoryResponse> getHistory(
+            @PathVariable Long ticketId,
+            Authentication authentication) {
+
+        String requestorEmail = authentication.getName();
+
+        // Verify that this ticket belongs to the logged-in requestor
+        ticketService.getMyTicket(ticketId, requestorEmail);
+
+        return ticketService.getTicketHistory(ticketId);
     }
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

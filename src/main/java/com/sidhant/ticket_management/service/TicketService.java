@@ -370,4 +370,21 @@ public List<TicketHistoryResponse> getTicketHistory(Long ticketId) {
             ))
             .toList();
 }
+public List<TicketResponse> getAllTickets() {
+
+    return ticketRepository
+            .findAll()
+            .stream()
+            .map(ticket -> new TicketResponse(
+                    ticket.getId(),
+                    ticket.getBankingClient().getName(),
+                    ticket.getTitle(),
+                    ticket.getDescription(),
+                    ticket.getCategory(),
+                    ticket.getPriority(),
+                    ticket.getStatus(),
+                    ticket.getAttachment()
+            ))
+            .toList();
+}
 }
