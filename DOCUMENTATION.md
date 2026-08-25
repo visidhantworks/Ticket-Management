@@ -1,14 +1,17 @@
-# Ticket Management System --- Technical Documentation
+ # Ticket Management System --- Technical Documentation
 
 ## 1. System Overview
 
 The Ticket Management System is a Spring Boot based support-ticket
 application.
 
-It has two primary roles:
+It has three primary roles:
 
 -   **REQUESTOR**
 -   **SUPPORT_ENGINEER**
+-   **ADMIN**
+
+The ADMIN role provides administrative control over user creation, ticket assignment/reassignment, support workload monitoring, and ticket-history review.
 
 A Requestor creates a ticket. A Support Engineer can work on assigned
 tickets, add comments, change status, and perform
@@ -200,6 +203,7 @@ The core persistent entities are:
 
 ``` text
 User
+UserSession
 BankingClient
 Ticket
 TicketComment
@@ -223,6 +227,51 @@ Roles:
 ``` text
 REQUESTOR
 SUPPORT_ENGINEER
+ADMIN
+```
+
+## UserSession
+
+The `UserSession` entity is used to maintain server-side session state for
+authenticated users in addition to the JWT.
+
+Important fields include:
+
+``` text
+id
+user_id
+session_id
+created_at
+expires_at
+active
+```
+
+A user session is created when login succeeds. The session stores a unique
+session identifier, creation time, expiration time, and whether it is
+currently active.
+
+The system checks this table during login. If an existing session is active
+and has not expired, another login is rejected. Logout marks the existing
+session as inactive.
+
+``` text
+Login
+  |
+  v
+Authenticate credentials
+  |
+  v
+Check UserSession
+  |
+  +--> Active + not expired --> reject new login
+  |
+  +--> Inactive/expired --> create/update session
+  |
+  v
+Generate JWT with session identifier
+  |
+  v
+Client
 ```
 
 ## BankingClient
@@ -364,6 +413,31 @@ TicketHistory
 +----------------------+
 ```
 
+The application also maintains a session table for active
+authentication sessions:
+
+``` text
++----------------------+
+|     user_sessions    |
++----------------------+
+| id PK                |
+| user_id FK           |
+| session_id           |
+| created_at           |
+| expires_at           |
+| active               |
++----------------------+
+```
+
+The `user_id` links the session to the corresponding user. The `active` flag
+is used during login/logout checks.
+
+Relationship:
+
+``` text
+User 1 -------- * UserSession
+```
+
 Relationship summary:
 
 ``` text
@@ -492,6 +566,138 @@ Authorization answers:
 > Is this user allowed to perform this operation?
 
 ------------------------------------------------------------------------
+
+# 10. Admin Role and Administrative Workflow
+
+The ADMIN role provides centralized control over user management, ticket
+assignment/reassignment, support workload monitoring, and ticket-history
+review.
+
+## Admin User Creation
+
+The Admin is the only role permitted to create new application users.
+The Admin can create both:
+
+-   **REQUESTOR** users
+-   **SUPPORT_ENGINEER** users
+
+The backend validates the requested role, hashes the password using BCrypt,
+and persists the new user.
+
+``` text
+ADMIN
+  |
+  v
+Admin User Creation API
+  |
+  v
+AdminService
+  |
+  +--> Validate input
+  +--> Create User
+  +--> Assign role
+  +--> BCrypt password
+  +--> Save User
+  |
+  v
+UserRepository
+  |
+  v
+PostgreSQL
+```
+
+## Admin Ticket Assignment and Reassignment
+
+The Admin can review tickets and select a Support Engineer to assign or
+reassign work to. This uses the existing assignment/reassignment business
+logic with Admin authorization.
+
+``` text
+ADMIN
+  |
+  v
+View Tickets
+  |
+  +--> Select Support Engineer
+  |
+  +--> Assign
+  |
+  or
+  |
+  +--> Reassign
+  |
+  v
+TicketService
+  |
+  +--> Validate Support Engineer
+  +--> Update supportEngineer
+  +--> Save Ticket
+  +--> Record audit history
+```
+
+## Admin Support Workload Monitoring
+
+The Admin can review support workload using the number of tickets that are
+currently pending and the number that have been attended/worked on by each
+Support Engineer.
+
+``` text
+Support Engineer
+       |
+       +--> Pending Tickets
+       |
+       +--> Attended Tickets
+```
+
+This gives the Admin a direct view of outstanding support work without
+requiring the Admin to inspect every ticket individually.
+
+## Admin Ticket History Review
+
+The Admin can review ticket history, including the history of resolved
+tickets. Ticket history preserves the sequence of important actions and
+status changes rather than only the current ticket state.
+
+``` text
+ADMIN
+  |
+  v
+Select Ticket
+  |
+  v
+View History
+  |
+  +--> Ticket Created
+  +--> Ticket Assigned
+  +--> Ticket Reassigned
+  +--> Comment Added
+  +--> Status Changed
+  |
+  v
+Resolved / Closed Ticket History
+```
+
+This allows the Admin to review how a resolved ticket was handled throughout
+its lifecycle.
+
+## Admin Authorization
+
+Admin endpoints are protected using Spring Security role-based authorization.
+
+``` text
+/api/admin/**
+       |
+       v
+    ADMIN
+```
+
+A Requestor or Support Engineer attempting to access an Admin endpoint should
+receive HTTP 403 Forbidden.
+
+The frontend may hide Admin navigation from other roles, but the backend
+remains responsible for enforcing authorization.
+
+--------------------------------------------------------------------------
 
 # 10. Most Important: How a Request Travels
 
@@ -1359,7 +1565,11 @@ The system distinguishes between:
 ``` text
 REQUESTOR
 SUPPORT_ENGINEER
+ADMIN
 ```
+
+Admin-only operations include user creation, ticket assignment/reassignment,
+support workload monitoring, and administrative ticket-history review.
 
 Authentication alone is not sufficient to access role-protected
 operations.
@@ -1455,6 +1665,21 @@ password hashing.
 The current ticket state cannot show how the ticket reached that state.
 The history table preserves important actions over time.
 
+## Why UserSession?
+
+JWT provides token-based authentication, but the application also needs
+explicit control over active login sessions. The `user_sessions` table stores
+the active session state, expiration time, and session identifier associated
+with each user. This allows the system to prevent concurrent active logins and
+to invalidate a session during logout.
+
+## Why an Admin role?
+
+Administrative operations should not be available to Requestors or Support
+Engineers. The Admin role centralizes user creation, support workload
+monitoring, ticket assignment/reassignment, and ticket-history review while
+Spring Security enforces the role boundary.
+
 ## Why environment variables?
 
 Database credentials and JWT secrets should not be committed to source
@@ -1483,7 +1708,7 @@ Possible future improvements:
 -   Optimistic locking for concurrent updates
 -   Rate limiting
 -   Structured production logging
--   Monitoring
+-   Advanced monitoring and metrics
 -   Notifications
 -   More granular permissions
 -   External file storage for attachments
@@ -1534,6 +1759,3 @@ The most important flow to remember is:
              v
            Client
 ```
-
-If you understand this request lifecycle, you understand the core
-architecture of the application.
